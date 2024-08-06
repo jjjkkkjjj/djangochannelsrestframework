@@ -108,7 +108,7 @@ class ModelObserver(BaseObserver):
 
         if connection.in_atomic_block:  # noqa: SIM102
             if len(connection.savepoint_ids) > 0:
-                warnings.warn(
+                warnings.warn(  # noqa: B028
                     'Model observation with save points is unsupported and will'
                     ' result in unexpected beauvoir.',
                     UnsupportedWarning,
@@ -135,7 +135,8 @@ class ModelObserver(BaseObserver):
 
         # if post delete, new_group_names should be []
 
-        # Django DDP had used the ordering of DELETE, UPDATE then CREATE for good reasons.
+        # Django DDP had used the ordering of
+        # DELETE, UPDATE then CREATE for good reasons.
         self.send_messages(
             instance, old_group_names - new_group_names, Action.DELETE, **kwargs
         )
