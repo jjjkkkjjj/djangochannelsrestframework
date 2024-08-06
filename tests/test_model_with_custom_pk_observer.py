@@ -1,5 +1,5 @@
-from typing import Dict
 import asyncio
+from typing import Dict
 
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
@@ -19,10 +19,10 @@ from tests.models import TestModelWithCustomPK
 async def test_subscription_create_notification(settings):
 
     settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'TEST_CONFIG': {
+                'expiry': 100500,
             },
         },
     }
@@ -30,7 +30,7 @@ async def test_subscription_create_notification(settings):
     class TestSerializer(serializers.ModelSerializer):
         class Meta:
             model = TestModelWithCustomPK
-            fields = ("name",)
+            fields = ('name',)
 
     class TestConsumer(GenericAsyncAPIConsumer):
 
@@ -39,7 +39,11 @@ async def test_subscription_create_notification(settings):
 
         @model_observer(TestModelWithCustomPK)
         async def model_change(
-            self, message: Dict, observer=None, subscribing_request_ids=[], **kwargs
+            self,
+            message: Dict,
+            observer=None,
+            subscribing_request_ids=[],  # noqa: B006
+            **kwargs  # noqa: B006
         ):
             for request_id in subscribing_request_ids:
                 await self.send_json(dict(request_id=request_id, **message))
@@ -55,25 +59,25 @@ async def test_subscription_create_notification(settings):
             await self.model_change.subscribe(request_id=request_id)
 
     # connect
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
     # subscribe
     subscription_id = 1
     await communicator.send_json_to(
-        {"action": "subscribe_to_all_changes", "request_id": subscription_id}
+        {'action': 'subscribe_to_all_changes', 'request_id': subscription_id}
     )
 
     # create an instance
     created_instance = await database_sync_to_async(
         TestModelWithCustomPK.objects.create
-    )(name="some_unique_name")
+    )(name='some_unique_name')
 
     # check the response
     response = await communicator.receive_json_from()
     assert response == {
-        "action": "create",
-        "request_id": subscription_id,
-        "data": TestSerializer(created_instance).data,
+        'action': 'create',
+        'request_id': subscription_id,
+        'data': TestSerializer(created_instance).data,
     }

@@ -18,9 +18,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = (
-            "id",
-            "username",
-            "email",
+            'id',
+            'username',
+            'email',
         )
 
 
@@ -28,10 +28,10 @@ class UserSerializer(serializers.ModelSerializer):
 @pytest.mark.asyncio
 async def test_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'TEST_CONFIG': {
+                'expiry': 100500,
             },
         },
     }
@@ -51,111 +51,111 @@ async def test_observer_model_instance_mixin(settings):
             user = await database_sync_to_async(self.get_object)(pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
-            return {"pk": pk}, 200
+            return {'pk': pk}, 200
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
-    await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
+    await communicator.send_json_to({'action': 'retrieve', 'pk': 100, 'request_id': 1})
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "retrieve",
-        "errors": ["Not found"],
-        "response_status": 404,
-        "request_id": 1,
-        "data": None,
+        'action': 'retrieve',
+        'errors': ['Not found'],
+        'response_status': 404,
+        'request_id': 1,
+        'data': None,
     }
 
     u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
+        username='test1', email='42@example.com'
     )
     u2 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test2", email="45@example.com"
+        username='test2', email='45@example.com'
     )
 
     # lookup a pk that is not there
     await communicator.send_json_to(
-        {"action": "retrieve", "pk": u1.id - 1, "request_id": 1}
+        {'action': 'retrieve', 'pk': u1.id - 1, 'request_id': 1}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "retrieve",
-        "errors": ["Not found"],
-        "response_status": 404,
-        "request_id": 1,
-        "data": None,
+        'action': 'retrieve',
+        'errors': ['Not found'],
+        'response_status': 404,
+        'request_id': 1,
+        'data': None,
     }
 
     # lookup up u1
     await communicator.send_json_to(
-        {"action": "retrieve", "pk": u1.id, "request_id": 1}
+        {'action': 'retrieve', 'pk': u1.id, 'request_id': 1}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "retrieve",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 1,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "test1"},
+        'action': 'retrieve',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 1,
+        'data': {'email': '42@example.com', 'id': u1.id, 'username': 'test1'},
     }
 
     # lookup up u1
     await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        {'action': 'subscribe_instance', 'pk': u1.id, 'request_id': 4}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 4,
+        'data': None,
     }
 
     u3 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test3", email="46@example.com"
+        username='test3', email='46@example.com'
     )
 
     # lookup up u1
     await communicator.send_json_to(
         {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
-            "request_id": 5,
+            'action': 'update_username',
+            'pk': u1.id,
+            'username': 'thenewname',
+            'request_id': 5,
         }
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
+        'action': 'update_username',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 5,
+        'data': {'pk': u1.id},
     }
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname"},
+        'action': 'update',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 4,
+        'data': {'email': '42@example.com', 'id': u1.id, 'username': 'thenewname'},
     }
 
     u1_pk = u1.pk
@@ -165,11 +165,11 @@ async def test_observer_model_instance_mixin(settings):
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "delete",
-        "errors": [],
-        "response_status": 204,
-        "request_id": 4,
-        "data": {"pk": u1_pk},
+        'action': 'delete',
+        'errors': [],
+        'response_status': 204,
+        'request_id': 4,
+        'data': {'pk': u1_pk},
     }
 
     await communicator.disconnect()
@@ -179,10 +179,10 @@ async def test_observer_model_instance_mixin(settings):
 @pytest.mark.asyncio
 async def test_two_observer_model_instance_mixins(settings):
     settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'TEST_CONFIG': {
+                'expiry': 100500,
             },
         },
     }
@@ -202,7 +202,7 @@ async def test_two_observer_model_instance_mixins(settings):
             user = await database_sync_to_async(self.get_object)(pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
-            return {"pk": pk}, 200
+            return {'pk': pk}, 200
 
     class TestOtherConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
@@ -217,56 +217,56 @@ async def test_two_observer_model_instance_mixins(settings):
             tm = await database_sync_to_async(self.get_object)(pk=pk)
             tm.name = name
             await database_sync_to_async(tm.save)()
-            return {"pk": pk}, 200
+            return {'pk': pk}, 200
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator1 = WebsocketCommunicator(TestOtherConsumer(), "/testws/")
+    communicator1 = WebsocketCommunicator(TestOtherConsumer(), '/testws/')
     connected, _ = await communicator1.connect()
     assert connected
 
     # Test a normal connection
-    communicator2 = WebsocketCommunicator(TestUserConsumer(), "/testws/")
+    communicator2 = WebsocketCommunicator(TestUserConsumer(), '/testws/')
     connected, _ = await communicator2.connect()
     assert connected
 
     u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
+        username='test1', email='42@example.com'
     )
-    t1 = await database_sync_to_async(TestModel.objects.create)(name="test2")
+    t1 = await database_sync_to_async(TestModel.objects.create)(name='test2')
 
     await communicator1.send_json_to(
-        {"action": "subscribe_instance", "pk": t1.id, "request_id": 4}
+        {'action': 'subscribe_instance', 'pk': t1.id, 'request_id': 4}
     )
 
     response = await communicator1.receive_json_from()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 4,
+        'data': None,
     }
 
     await communicator2.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        {'action': 'subscribe_instance', 'pk': u1.id, 'request_id': 4}
     )
 
     response = await communicator2.receive_json_from()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 4,
+        'data': None,
     }
 
     # update the user
 
-    u1.username = "no not a value"
+    u1.username = 'no not a value'
 
     await database_sync_to_async(u1.save)()
 
@@ -281,10 +281,10 @@ async def test_two_observer_model_instance_mixins(settings):
 @pytest.mark.asyncio
 async def test_unsubscribe_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'TEST_CONFIG': {
+                'expiry': 100500,
             },
         },
     }
@@ -304,41 +304,41 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
             user = await database_sync_to_async(self.get_object)(pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
-            return {"pk": pk}, 200
+            return {'pk': pk}, 200
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerUnsubscribe(), "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerUnsubscribe(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
     u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
+        username='test1', email='42@example.com'
     )
 
     # lookup up u1
     await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        {'action': 'subscribe_instance', 'pk': u1.id, 'request_id': 4}
     )
 
     response = await communicator.receive_json_from()
     assert await communicator.receive_nothing()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 4,
+        'data': None,
     }
 
     await communicator.send_json_to(
         {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
-            "request_id": 5,
+            'action': 'update_username',
+            'pk': u1.id,
+            'username': 'thenewname',
+            'request_id': 5,
         }
     )
 
@@ -347,56 +347,56 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     b = await communicator.receive_json_from()
 
     assert {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
+        'action': 'update_username',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 5,
+        'data': {'pk': u1.id},
     } in [a, b]
 
     assert {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname"},
+        'action': 'update',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 4,
+        'data': {'email': '42@example.com', 'id': u1.pk, 'username': 'thenewname'},
     } in [a, b]
 
     # unsubscribe
     # lookup up u1
 
     await communicator.send_json_to(
-        {"action": "unsubscribe_instance", "pk": u1.id, "request_id": 4}
+        {'action': 'unsubscribe_instance', 'pk': u1.id, 'request_id': 4}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "unsubscribe_instance",
-        "errors": [],
-        "response_status": 204,
-        "request_id": 4,
-        "data": None,
+        'action': 'unsubscribe_instance',
+        'errors': [],
+        'response_status': 204,
+        'request_id': 4,
+        'data': None,
     }
     assert await communicator.receive_nothing()
 
     await communicator.send_json_to(
         {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
-            "request_id": 5,
+            'action': 'update_username',
+            'pk': u1.id,
+            'username': 'thenewname',
+            'request_id': 5,
         }
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
+        'action': 'update_username',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 5,
+        'data': {'pk': u1.id},
     }
 
     await communicator.disconnect()
@@ -410,9 +410,9 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     """
 
     settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            'TEST_CONFIG': {'expiry': 100500},
         },
     }
 
@@ -431,81 +431,81 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             user = await database_sync_to_async(self.get_object)(pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
-            return {"pk": pk}, 200
+            return {'pk': pk}, 200
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerMultipleSubs(), "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerMultipleSubs(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
     u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
+        username='test1', email='42@example.com'
     )
 
     u2 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test2", email="45@example.com"
+        username='test2', email='45@example.com'
     )
 
     # Subscribe to instance user 1
     await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        {'action': 'subscribe_instance', 'pk': u1.id, 'request_id': 4}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 4,
+        'data': None,
     }
 
     # Subscribe to instance user 2
     await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u2.id, "request_id": 5}
+        {'action': 'subscribe_instance', 'pk': u2.id, 'request_id': 5}
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 5,
-        "data": None,
+        'action': 'subscribe_instance',
+        'errors': [],
+        'response_status': 201,
+        'request_id': 5,
+        'data': None,
     }
 
     # lookup up u1
     await communicator.send_json_to(
         {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "new name",
-            "request_id": 10,
+            'action': 'update_username',
+            'pk': u1.id,
+            'username': 'new name',
+            'request_id': 10,
         }
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 10,
-        "data": {"pk": u1.id},
+        'action': 'update_username',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 10,
+        'data': {'pk': u1.id},
     }
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "new name"},
+        'action': 'update',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 4,
+        'data': {'email': '42@example.com', 'id': u1.id, 'username': 'new name'},
     }
 
     assert await communicator.receive_nothing()
@@ -513,31 +513,31 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     # Update U2
     await communicator.send_json_to(
         {
-            "action": "update_username",
-            "pk": u2.id,
-            "username": "the new name 2",
-            "request_id": 11,
+            'action': 'update_username',
+            'pk': u2.id,
+            'username': 'the new name 2',
+            'request_id': 11,
         }
     )
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 11,
-        "data": {"pk": u2.id},
+        'action': 'update_username',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 11,
+        'data': {'pk': u2.id},
     }
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
+        'action': 'update',
+        'errors': [],
+        'response_status': 200,
+        'request_id': 5,
+        'data': {'email': '45@example.com', 'id': u2.id, 'username': 'the new name 2'},
     }
 
     await communicator.disconnect()
