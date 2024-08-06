@@ -1,11 +1,10 @@
-from typing import Dict, Any
-
+from typing import Any, Dict
 
 from channels.consumer import AsyncConsumer
+from django.db.models import Model
 from rest_framework.permissions import BasePermission as DRFBasePermission
 
-from djangochannelsrestframework.scope_utils import ensure_async
-from djangochannelsrestframework.scope_utils import request_from_scope
+from djangochannelsrestframework.scope_utils import ensure_async, request_from_scope
 
 
 class OperationHolderMixin:
@@ -48,7 +47,7 @@ class OperandHolder(OperationHolderMixin):
 
 
 class AND:
-    def __init__(self, op1: "BasePermission", op2: "BasePermission"):
+    def __init__(self, op1: 'BasePermission', op2: 'BasePermission'):
         self.op1 = op1
         self.op2 = op2
 
@@ -61,7 +60,7 @@ class AND:
 
 
 class OR:
-    def __init__(self, op1: "BasePermission", op2: "BasePermission"):
+    def __init__(self, op1: 'BasePermission', op2: 'BasePermission'):
         self.op1 = op1
         self.op2 = op2
 
@@ -74,7 +73,7 @@ class OR:
 
 
 class NOT:
-    def __init__(self, op1: "BasePermission"):
+    def __init__(self, op1: 'BasePermission'):
         self.op1 = op1
 
     def has_permission(
@@ -99,6 +98,19 @@ class BasePermission(metaclass=BasePermissionMetaclass):
 
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+    ) -> bool:
+        """
+        Called on every websocket message sent before the corresponding action handler is called.
+        """
+        pass
+
+    async def has_object_permission(
+        self,
+        scope: Dict[str, Any],
+        consumer: AsyncConsumer,
+        action: str,
+        obj: Model,
+        **kwargs
     ) -> bool:
         """
         Called on every websocket message sent before the corresponding action handler is called.
@@ -131,7 +143,7 @@ class IsAuthenticated(BasePermission):
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
-        user = scope.get("user")
+        user = scope.get('user')
         if not user:
             return False
         return user.pk and user.is_authenticated
@@ -145,11 +157,11 @@ class WrappedDRFPermission(BasePermission):
     permission: DRFBasePermission
 
     mapped_actions = {
-        "create": "PUT",
-        "update": "PATCH",
-        "list": "GET",
-        "retrieve": "GET",
-        "connect": "HEAD",
+        'create': 'PUT',
+        'update': 'PATCH',
+        'list': 'GET',
+        'retrieve': 'GET',
+        'connect': 'HEAD',
     }
 
     def __init__(self, permission: DRFBasePermission):
@@ -162,9 +174,23 @@ class WrappedDRFPermission(BasePermission):
         request.method = self.mapped_actions.get(action, action.upper())
         return await ensure_async(self.permission.has_permission)(request, consumer)
 
+    async def has_object_permission(
+        self,
+        scope: Dict[str, Any],
+        consumer: AsyncConsumer,
+        action: str,
+        obj: Model,
+        **kwargs
+    ) -> bool:
+        request = request_from_scope(scope)
+        request.method = self.mapped_actions.get(action, action.upper())
+        return await ensure_async(self.permission.has_object_permission)(
+            request, consumer, obj
+        )
+
     async def can_connect(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
     ) -> bool:
         request = request_from_scope(scope)
-        request.method = self.mapped_actions.get("connect", "CONNECT")
+        request.method = self.mapped_actions.get('connect', 'CONNECT')
         return await ensure_async(self.permission.has_permission)(request, consumer)

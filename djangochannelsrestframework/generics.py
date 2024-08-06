@@ -3,8 +3,11 @@ from typing import Any, Dict, Type, Optional
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
+from rest_framework.exceptions import PermissionDenied
+
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
 
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
@@ -182,3 +185,13 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         # TODO filter_backends
 
         return queryset
+
+    async def check_permissions(self, action: str, **kwargs):
+        await super().check_permissions(action, **kwargs)
+        instance = self.get_object()
+        for permission in await self.get_permissions(action=action, **kwargs):
+            if hasattr(permission, 'has_object_permission') and \
+                not await ensure_async(permission.has_object_permission)(
+                    scope=self.scope, consumer=self, action=action, obj=instance
+                ):
+                    raise PermissionDenied()
