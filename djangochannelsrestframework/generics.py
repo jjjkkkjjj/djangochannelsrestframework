@@ -1,13 +1,12 @@
-from typing import Any, Dict, Type, Optional
+from typing import Any, Dict, Optional, Type
 
-from django.db.models import QuerySet, Model
+from django.db.models import Model, QuerySet
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
-from rest_framework.exceptions import PermissionDenied
-
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
-from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
+from djangochannelsrestframework.scope_utils import ensure_async, request_from_scope
 
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
@@ -16,7 +15,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
 
     Attributes:
         queryset: will be accessed when the method `get_queryset` is called.
-        serializer_class: it should correspond with the `queryset` model, it will be used for the return response.
+        serializer_class: it should correspond with the `queryset` model,
+                        it will be used for the return response.
         lookup_field: field used in the `get_object` method. Optional.
         lookup_url_kwarg: url parameter used it for the lookup.
     """
@@ -33,7 +33,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
 
     # If you want to use object lookups other than pk, set 'lookup_field'.
     # For more complex lookup requirements override `get_object()`.
-    lookup_field = "pk"  # type: str
+    lookup_field = 'pk'  # type: str
     lookup_url_kwarg = None  # type: Optional[str]
 
     # TODO filter_backends
@@ -62,8 +62,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
             Queryset attribute.
         """
         assert self.queryset is not None, (
-            "'%s' should either include a `queryset` attribute, "
-            "or override the `get_queryset()` method." % self.__class__.__name__
+            f"'{self.__class__.__name__}' should either include "
+            "a `queryset` attribute, or override the `get_queryset()` method."
         )
 
         queryset = self.queryset
@@ -87,7 +87,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
             :obj:`Model` object class.
 
         Examples:
-            >>> filtered_queryset = self.get_object(**{"field__gte": value})  # this way you could filter from the frontend.
+            >>> filtered_queryset = self.get_object(**{"field__gte": value})
+            # this way you could filter from the frontend.
         """
         queryset = self.filter_queryset(queryset=self.get_queryset(**kwargs), **kwargs)
 
@@ -95,10 +96,10 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
 
         assert lookup_url_kwarg in kwargs, (
-            "Expected view %s to be called with a URL keyword argument "
-            'named "%s". Fix your URL conf, or set the `.lookup_field` '
-            "attribute on the view correctly."
-            % (self.__class__.__name__, lookup_url_kwarg)
+            f'Expected view {self.__class__.__name__} to be called with '
+            f'a URL keyword argument named "{lookup_url_kwarg}". '
+            'Fix your URL conf, or set the `.lookup_field` '
+            'attribute on the view correctly.'
         )
 
         filter_kwargs = {self.lookup_field: kwargs[lookup_url_kwarg]}
@@ -124,7 +125,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         """
         serializer_class = self.get_serializer_class(**action_kwargs)
 
-        kwargs["context"] = self.get_serializer_context(**action_kwargs)
+        kwargs['context'] = self.get_serializer_context(**action_kwargs)
 
         return serializer_class(*args, **kwargs)
 
@@ -145,8 +146,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
             Model serializer class.
         """
         assert self.serializer_class is not None, (
-            "'%s' should either include a `serializer_class` attribute, "
-            "or override the `get_serializer_class()` method." % self.__class__.__name__
+            f"'{self.__class__.__name__}' should either include a `serializer_class` "
+            "attribute, or override the `get_serializer_class()` method."
         )
 
         return self.serializer_class
@@ -161,7 +162,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         Returns:
             Context dictionary, containing the scope and the consumer instance.
         """
-        return {"scope": self.scope, "consumer": self}
+        return {'scope': self.scope, 'consumer': self}
 
     def filter_queryset(self, queryset: QuerySet, **kwargs) -> QuerySet:
         """
@@ -190,8 +191,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         await super().check_permissions(action, **kwargs)
         instance = self.get_object()
         for permission in await self.get_permissions(action=action, **kwargs):
-            if hasattr(permission, 'has_object_permission') and \
-                not await ensure_async(permission.has_object_permission)(
-                    scope=self.scope, consumer=self, action=action, obj=instance
-                ):
-                    raise PermissionDenied()
+            if hasattr(permission, 'has_object_permission') and not await ensure_async(
+                permission.has_object_permission
+            )(scope=self.scope, consumer=self, action=action, obj=instance):
+                raise PermissionDenied()

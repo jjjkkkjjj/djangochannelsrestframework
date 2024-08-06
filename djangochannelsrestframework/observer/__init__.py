@@ -1,11 +1,11 @@
 from functools import partial
-from typing import Type, Callable
+from typing import Callable, Type
 
 from django.db.models import Model
 from django.dispatch import Signal
 
-from djangochannelsrestframework.observer.observer import Observer
 from djangochannelsrestframework.observer.model_observer import ModelObserver
+from djangochannelsrestframework.observer.observer import Observer
 
 
 def observer(signal: Signal, **kwargs):
@@ -26,8 +26,8 @@ def observer(signal: Signal, **kwargs):
             async def handle_user_logged_in(self, message, observer=None, **kwargs):
                 await self.send_json(message)
 
-    If the signal you are using supports filtering with `args` or `kwargs` these can be passed
-    to the `@observer(signal, args..)`.
+    If the signal you are using supports filtering with `args` or `kwargs`
+    these can be passed to the `@observer(signal, args..)`.
 
     """
     return partial(Observer, signal=signal, kwargs=kwargs)
@@ -38,8 +38,10 @@ def model_observer(model: Type[Model], **kwargs):
     .. note::
         Should be used as a method decorator eg: `@model_observer(BlogPost)`
 
-    The resulted wrapped method body becomes the handler that is called on each subscribed consumer.
-    The method itself is replaced with an instance of :class:`djangochannelsrestframework.observer.model_observer.ModelObserver`
+    The resulted wrapped method body becomes the handler
+    that is called on each subscribed consumer.
+    The method itself is replaced with an instance of
+    :class:`djangochannelsrestframework.observer.model_observer.ModelObserver`
 
     .. code-block:: python
 
@@ -57,7 +59,13 @@ def model_observer(model: Type[Model], **kwargs):
             serializer_class = UserSerializer
 
             @model_observer(Comment)
-            async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
+            async def comment_activity(
+                self,
+                message,
+                observer=None,
+                subscribing_request_ids=[],
+                **kwargs
+            ):
                 for request_id in subscribing_request_ids:
                     await self.send_json({"message": message, "request_id": request_id})
 
@@ -70,7 +78,8 @@ def model_observer(model: Type[Model], **kwargs):
                 await self.comment_activity.subscribe(request_id=request_id)
 
 
-    If you only need to use a regular Django Rest Framework Serializer class then there is a shorthand:
+    If you only need to use a regular Django Rest Framework Serializer class
+    then there is a shorthand:
 
     .. code-block:: python
 
@@ -79,7 +88,13 @@ def model_observer(model: Type[Model], **kwargs):
             serializer_class = UserSerializer
 
             @model_observer(Comment, serializer_class=CommentSerializer)
-            async def comment_activity(self, message, action, subscribing_request_ids=[], **kwargs):
+            async def comment_activity(
+                self,
+                message,
+                action,
+                subscribing_request_ids=[],
+                **kwargs
+            ):
                 for request_id in subscribing_request_ids:
                     await self.reply(data=message, action=action, request_id=request_id)
 

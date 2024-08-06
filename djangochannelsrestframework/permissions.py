@@ -90,7 +90,8 @@ class BasePermission(metaclass=BasePermissionMetaclass):
     """Base permission class
 
     Notes:
-        You should extend this class and override the `has_permission` method to create your own permission class.
+        You should extend this class
+        and override the `has_permission` method to create your own permission class.
 
     Methods:
         async has_permission (scope, consumer, action, **kwargs)
@@ -100,7 +101,8 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
         """
-        Called on every websocket message sent before the corresponding action handler is called.
+        Called on every websocket message sent
+        before the corresponding action handler is called.
         """
         pass
 
@@ -113,7 +115,8 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         **kwargs
     ) -> bool:
         """
-        Called on every websocket message sent before the corresponding action handler is called.
+        Called on every websocket message sent
+        before the corresponding action handler is called.
         """
         pass
 
@@ -121,7 +124,8 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
     ) -> bool:
         """
-        Called during connection to validate if a given client can establish a websocket connection.
+        Called during connection to validate
+        if a given client can establish a websocket connection.
 
         By default, this returns True and permits all connections to be made.
         """

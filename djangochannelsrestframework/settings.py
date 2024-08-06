@@ -3,12 +3,12 @@ from django.core.signals import setting_changed
 from rest_framework.settings import perform_import
 
 DEFAULTS = {
-    "DEFAULT_PAGE_SIZE": 25,
-    "DEFAULT_PERMISSION_CLASSES": ("djangochannelsrestframework.permissions.AllowAny",),
-    "DEFAULT_PAGINATION_CLASS": None,
-    "PAGE_SIZE": None,
+    'DEFAULT_PAGE_SIZE': 25,
+    'DEFAULT_PERMISSION_CLASSES': ('djangochannelsrestframework.permissions.AllowAny',),
+    'DEFAULT_PAGINATION_CLASS': None,
+    'PAGE_SIZE': None,
 }
-IMPORT_STRINGS = ("DEFAULT_PERMISSION_CLASSES", "DEFAULT_PAGINATION_CLASS")
+IMPORT_STRINGS = ('DEFAULT_PERMISSION_CLASSES', 'DEFAULT_PAGINATION_CLASS')
 
 
 class APISettings:
@@ -21,13 +21,13 @@ class APISettings:
 
     @property
     def user_settings(self):
-        if not hasattr(self, "_user_settings"):
-            self._user_settings = getattr(settings, "DJANGO_CHANNELS_REST_API", {})
+        if not hasattr(self, '_user_settings'):
+            self._user_settings = getattr(settings, 'DJANGO_CHANNELS_REST_API', {})
         return self._user_settings
 
     def __getattr__(self, attr):
         if attr not in self.defaults:
-            raise AttributeError("Invalid API setting: '%s'" % attr)
+            raise AttributeError(f"Invalid API setting: '{attr}'")
 
         try:
             # Check if present in user settings
@@ -49,16 +49,16 @@ class APISettings:
         for attr in self._cached_attrs:
             delattr(self, attr)
         self._cached_attrs.clear()
-        if hasattr(self, "_user_settings"):
-            delattr(self, "_user_settings")
+        if hasattr(self, '_user_settings'):
+            delattr(self, '_user_settings')
 
 
 api_settings = APISettings(None, DEFAULTS, IMPORT_STRINGS)
 
 
 def reload_api_settings(*args, **kwargs):
-    setting = kwargs["setting"]
-    if setting == "DJANGO_CHANNELS_REST_API":
+    setting = kwargs['setting']
+    if setting == 'DJANGO_CHANNELS_REST_API':
         api_settings.reload()
 
 

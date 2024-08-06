@@ -1,5 +1,5 @@
 import asyncio
-from functools import wraps, partial
+from functools import partial, wraps
 from typing import Optional
 
 from channels.db import database_sync_to_async
@@ -50,7 +50,8 @@ def action(atomic: Optional[bool] = None, detached: Optional[bool] = None, **kwa
     ----
 
     When using on `async` methods you can provide an additional
-    option `detached=True` so that the method runs detached from the main run-loop of the consumer,
+    option `detached=True` so that the method runs detached
+    from the main run-loop of the consumer,
     allowing other actions on the consumer to be called while this action runs.
     This can be useful if the action needs to make further long-running async operations
     such as upstream network requests.
@@ -72,7 +73,8 @@ def action(atomic: Optional[bool] = None, detached: Optional[bool] = None, **kwa
 
     When using on `sync` methods you can provide an additional
     option `atomic=True` to forcefully wrap the method in a transaction.
-    The default value for atomic is determined by django's default db `ATOMIC_REQUESTS` setting.
+    The default value for atomic is determined
+    by django's default db `ATOMIC_REQUESTS` setting.
 
 
 
@@ -94,20 +96,20 @@ def action(atomic: Optional[bool] = None, detached: Optional[bool] = None, **kwa
 
         if asyncio.iscoroutinefunction(func):
             if _atomic:
-                raise ValueError("Only synchronous actions can be atomic")
+                raise ValueError('Only synchronous actions can be atomic')
 
             if detached:
                 return __detached_action(func)
             else:
                 return func
         elif detached:
-            raise ValueError("Only asynchronous actions can be detached")
+            raise ValueError('Only asynchronous actions can be detached')
 
         # Read out default atomic state from DB connection
         if atomic is None:
-            databases = getattr(settings, "DATABASES", {})
-            database = databases.get("default", {})
-            _atomic = database.get("ATOMIC_REQUESTS", False)
+            databases = getattr(settings, 'DATABASES', {})
+            database = databases.get('default', {})
+            _atomic = database.get('ATOMIC_REQUESTS', False)
 
         if _atomic:
             # wrap function in atomic wrapper
@@ -134,10 +136,11 @@ def detached(func):
     Sets a method to run detached from the consumers main run-loop.
 
     You should only do this for methods were you expect the runtime to be long
-    (such as awaiting an upstream network request) and what to be able to handle other messages using the
-    consumer while waiting.
+    (such as awaiting an upstream network request)
+    and what to be able to handle other messages using the consumer while waiting.
 
-    If you need a detached :func:`action` then you should use `@action(detached=True)` instead.
+    If you need a detached :func:`action`
+    then you should use `@action(detached=True)` instead.
 
     .. note::
 
@@ -156,7 +159,8 @@ def detached(func):
             async def on_message(self, *args, **kwargs):
                 ...
 
-    Methods decorated with `@detached` are canceled when the websocket connection closes.
+    Methods decorated with `@detached` are canceled
+    when the websocket connection closes.
     """
 
     @wraps(func)
@@ -183,16 +187,16 @@ def __detached_action(func):
                     await self.reply(
                         data=data,
                         status=status,
-                        action=kwargs.get("action"),
-                        request_id=kwargs.get("request_id"),
+                        action=kwargs.get('action'),
+                        request_id=kwargs.get('request_id'),
                     )
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 await self.handle_exception(
                     exc=e,
-                    action=kwargs.get("action"),
-                    request_id=kwargs.get("request_id"),
+                    action=kwargs.get('action'),
+                    request_id=kwargs.get('request_id'),
                 )
 
         task = asyncio.create_task(wrapped_action())

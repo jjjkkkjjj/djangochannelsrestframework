@@ -40,10 +40,10 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
         # TODO
         return OrderedDict(
             [
-                ("count", self.count),
-                ("results", data),
-                ("limit", self.limit),
-                ("offset", self.offset),
+                ('count', self.count),
+                ('results', data),
+                ('limit', self.limit),
+                ('offset', self.offset),
             ]
         )
 
@@ -85,7 +85,7 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
             Limit results pagination.
         """
 
-        limit_query_param = kwargs.get("limit", self.default_limit)
+        limit_query_param = kwargs.get('limit', self.default_limit)
         if self.limit_query_param:
             try:
                 return _positive_int(
@@ -105,7 +105,7 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
         Returns:
             Offset value.
         """
-        offset_query_param = kwargs.get("offset", 0)
+        offset_query_param = kwargs.get('offset', 0)
         try:
             return _positive_int(
                 offset_query_param,

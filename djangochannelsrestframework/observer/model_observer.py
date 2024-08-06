@@ -3,23 +3,23 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import partial
-from typing import Type, Dict, Any, Set, Optional
+from typing import Any, Dict, Optional, Set, Type
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
 from django.db.models import Model
-from django.db.models.signals import post_delete, post_save, post_init
+from django.db.models.signals import post_delete, post_init, post_save
 from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.observer.base_observer import BaseObserver
 
 
 class Action(Enum):
-    CREATE = "create"
-    UPDATE = "update"
-    DELETE = "delete"
+    CREATE = 'create'
+    UPDATE = 'update'
+    DELETE = 'delete'
 
 
 class UnsupportedWarning(Warning):
@@ -32,10 +32,10 @@ class ModelObserverInstanceState:
 
 
 class ModelObserver(BaseObserver):
-    def __init__(self, func, model_cls: Type[Model], partition: str = "*", **kwargs):
+    def __init__(self, func, model_cls: Type[Model], partition: str = '*', **kwargs):
         super().__init__(func, partition=partition)
         self._serializer_class = (
-            kwargs["kwargs"].get("serializer_class") if "kwargs" in kwargs else None
+            kwargs['kwargs'].get('serializer_class') if 'kwargs' in kwargs else None
         )  # type: Optional[Serializer]
         self._serializer = None
         self._model_cls = None
@@ -83,7 +83,7 @@ class ModelObserver(BaseObserver):
 
     def get_observer_state(self, instance: Model) -> ModelObserverInstanceState:
         # use a thread local dict to be safe...
-        if not hasattr(instance._state, "_thread_local_observers"):
+        if not hasattr(instance._state, '_thread_local_observers'):
             instance._state._thread_local_observers = defaultdict(
                 ModelObserverInstanceState
             )
@@ -106,11 +106,11 @@ class ModelObserver(BaseObserver):
 
         connection = transaction.get_connection()
 
-        if connection.in_atomic_block:
+        if connection.in_atomic_block:  # noqa: SIM102
             if len(connection.savepoint_ids) > 0:
                 warnings.warn(
-                    "Model observation with save points is unsupported and will"
-                    " result in unexpected beauvoir.",
+                    'Model observation with save points is unsupported and will'
+                    ' result in unexpected beauvoir.',
                     UnsupportedWarning,
                 )
 
@@ -161,15 +161,15 @@ class ModelObserver(BaseObserver):
             message_to_send = deepcopy(message)
 
             # Include the group name in the message being sent
-            message_to_send["group"] = group_name
+            message_to_send['group'] = group_name
 
             async_to_sync(channel_layer.group_send)(group_name, message_to_send)
 
     def group_names(self, *args, **kwargs):
         # one channel for all updates.
-        yield "{}-{}-model-{}".format(
+        yield '{}-{}-model-{}'.format(
             self._stable_observer_id,
-            self.func.__name__.replace("_", "."),
+            self.func.__name__.replace('_', '.'),
             self.model_label,
         )
 
@@ -180,10 +180,10 @@ class ModelObserver(BaseObserver):
         elif self._serializer_class:
             message_body = self._serializer_class(instance).data
         else:
-            message_body["pk"] = instance.pk
+            message_body['pk'] = instance.pk
 
         message = dict(
-            type=self.func.__name__.replace("_", "."),
+            type=self.func.__name__.replace('_', '.'),
             body=message_body,
             action=action.value,
         )
@@ -192,12 +192,7 @@ class ModelObserver(BaseObserver):
 
     @property
     def model_label(self):
-        model_label = (
-            "{}.{}".format(
-                self.model_cls._meta.app_label.lower(),
-                self.model_cls._meta.object_name.lower(),
-            )
-            .lower()
-            .replace("_", ".")
-        )
-        return model_label
+        app_name = self.model_cls._meta.app_label.lower()
+        object_name = self.model_cls._meta.object_name.lower()
+        label = f'{app_name}.{object_name}'.lower().replace('_', '.')
+        return label

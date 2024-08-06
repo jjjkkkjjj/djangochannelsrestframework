@@ -1,29 +1,28 @@
 import asyncio
 import json
+import logging
 import typing
 from collections import defaultdict
 from functools import partial, wraps
-from typing import Dict, List, Type, Any, Set
-
-import logging
-
-
-# Get an instance of a logger
-logger = logging.getLogger(__name__)
+from typing import Any, Dict, List, Set, Type
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
-from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
-from rest_framework.permissions import BasePermission as DRFBasePermission, OR, AND, NOT
+from rest_framework.exceptions import APIException, MethodNotAllowed, PermissionDenied
+from rest_framework.permissions import AND, NOT, OR
+from rest_framework.permissions import BasePermission as DRFBasePermission
 from rest_framework.response import Response
 
-from djangochannelsrestframework.settings import api_settings
-from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
-from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
 from djangochannelsrestframework.exceptions import ActionMissingException
+from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
+from djangochannelsrestframework.scope_utils import ensure_async, request_from_scope
+from djangochannelsrestframework.settings import api_settings
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 
 class APIConsumerMetaclass(type):
@@ -37,10 +36,10 @@ class APIConsumerMetaclass(type):
         cls.available_actions = {}
         for method_name in dir(cls):
             attr = getattr(cls, method_name)
-            is_action = getattr(attr, "action", False)
+            is_action = getattr(attr, 'action', False)
             if is_action:
-                kwargs = getattr(attr, "kwargs", {})
-                name = kwargs.get("name", method_name)
+                kwargs = getattr(attr, 'kwargs', {})
+                name = kwargs.get('name', method_name)
                 cls.available_actions[name] = method_name
 
         return cls
@@ -48,7 +47,8 @@ class APIConsumerMetaclass(type):
 
 class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclass):
     """
-    This provides an async API consumer that is very inspired by DjangoRestFrameworks ViewSets.
+    This provides an async API consumer
+    that is very inspired by DjangoRestFrameworks ViewSets.
 
     Attributes:
         permission_classes     An array for Permission classes
@@ -78,7 +78,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         Called when a WebSocket connection is opened.
         """
         try:
-            for permission in await self.get_permissions(action="connect"):
+            for permission in await self.get_permissions(action='connect'):
                 if not await ensure_async(permission.can_connect)(
                     scope=self.scope, consumer=self, message=message
                 ):
@@ -158,13 +158,14 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         elif exc == Http404 or isinstance(exc, Http404):
             await self.reply(
                 action=action,
-                errors=self._format_errors("Not found"),
+                errors=self._format_errors('Not found'),
                 status=404,
                 request_id=request_id,
             )
         else:
             logger.error(
-                f"Error when handling request: {request_id} from client for action: {action}",
+                'Error when handling request: '
+                f'{request_id} from client for action: {action}',
                 exc_info=exc,
             )
             raise exc
@@ -172,9 +173,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     def _format_errors(self, errors):
         if isinstance(errors, list):
             return errors
-        elif isinstance(errors, str):
-            return [errors]
-        elif isinstance(errors, dict):
+        elif isinstance(errors, (str, dict)):
             return [errors]
 
     async def handle_action(self, action: str, request_id: str, **kwargs):
@@ -210,7 +209,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             await self.handle_exception(exc, action=action, request_id=request_id)
 
     async def receive_json(self, content: typing.Dict, **kwargs):
-        request_id = content.pop("request_id", None)
+        request_id = content.pop('request_id', None)
         action: str
         content: Dict
         try:
@@ -232,11 +231,13 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         """
         Retrieves the action name from the json message.
 
-        Returns a tuple of the action name and the arguments that is passed to the action.
+        Returns a tuple of the action name
+        and the arguments that is passed to the action.
 
-        Override this method if you do not want to use `{"action": "action_name"}` as the way to describe actions.
+        Override this method if you do not want to use `{"action": "action_name"}`
+        as the way to describe actions.
         """
-        action = content.pop("action")
+        action = content.pop('action')
         return (action, content)
 
     async def reply(
@@ -250,19 +251,19 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         """
         Send a json response back to the client.
 
-        You should aim to include the `request_id` if possible as this helps clients link messages they have
-        sent to responses.
+        You should aim to include the `request_id`
+        if possible as this helps clients link messages they have sent to responses.
         """
 
         if errors is None:
             errors = []
 
         payload = {
-            "errors": errors,
-            "data": data,
-            "action": action,
-            "response_status": status,
-            "request_id": request_id,
+            'errors': errors,
+            'data': data,
+            'action': action,
+            'response_status': status,
+            'request_id': request_id,
         }
 
         await self.send_json(payload)
@@ -273,9 +274,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.error("Error while waiting for detached task to finish", exc_info=e)
+            logger.error('Error while waiting for detached task to finish', exc_info=e)
         finally:
-            try:
+            try:  # noqa: SIM105
                 self.detached_tasks.remove(task)
             except ValueError:
                 # If the task has already been removed
@@ -321,15 +322,15 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
         args, view_kwargs = self.get_view_args(action=action, **kwargs)
 
         request.method = self.actions[action]
-        request.POST = json.dumps(kwargs.get("data", {}))
+        request.POST = json.dumps(kwargs.get('data', {}))
 
-        for key, value in kwargs.get("query", {}).items():
+        for key, value in kwargs.get('query', {}).items():
             if isinstance(value, list):
                 request.GET.setlist(key, value)
             else:
                 request.GET[key] = value
 
-        view = getattr(self.__class__, "view")
+        view = self.__class__.view
 
         response = view(request, *args, **view_kwargs)
 
@@ -350,13 +351,13 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
         response_content = response.content
         if isinstance(response_content, bytes):
             try:
-                response_content = response_content.decode("utf-8")
+                response_content = response_content.decode('utf-8')
             except Exception as e:
                 response_content = response_content.hex()
         return response_content, status
 
     def get_view_args(self, action: str, **kwargs):
-        return [], kwargs.get("parameters", {})
+        return [], kwargs.get('parameters', {})
 
 
 def view_as_consumer(
@@ -372,7 +373,8 @@ def view_as_consumer(
                 re_path(r"^user/$", view_as_consumer(UserViewSet.as_view()))
             ]
 
-    This exposes the django view to your websocket connection so that you can send messages:
+    This exposes the django view to your websocket connection
+    so that you can send messages:
 
     .. code-block:: javascript
 
@@ -389,19 +391,21 @@ def view_as_consumer(
     * ``list`` - ``GET``
     * ``retrieve`` - ``GET``
 
-    Providing a `query` dict in the websocket messages results in the values of this dict being writen to the `GET`
-    property of the request within your django view.
+    Providing a `query` dict in the websocket messages results in the values
+    of this dict being writen to the `GET` property of the request
+    within your django view.
 
-    Providing a `parameters` dict within the websocket messages results in these values being passed as kwargs to the
-    view method (in the same way that url parameters would normally be extracted).
+    Providing a `parameters` dict within the websocket messages results
+    in these values being passed as kwargs to the view method
+    (in the same way that url parameters would normally be extracted).
 
     """
     if mapped_actions is None:
         mapped_actions = {
-            "create": "PUT",
-            "update": "PATCH",
-            "list": "GET",
-            "retrieve": "GET",
+            'create': 'PUT',
+            'update': 'PATCH',
+            'list': 'GET',
+            'retrieve': 'GET',
         }
 
     class DjangoViewWrapper(DjangoViewAsConsumer):

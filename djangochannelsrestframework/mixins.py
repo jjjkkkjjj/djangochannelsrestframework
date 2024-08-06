@@ -1,14 +1,14 @@
-from typing import Any, Tuple, Dict, Optional, OrderedDict, Union
+from typing import Any, Dict, Optional, OrderedDict, Tuple, Union
 
 from rest_framework import status
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
-from djangochannelsrestframework.settings import api_settings
 from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.settings import api_settings
 
 
 class CreateModelMixin:
-    """ Create model mixin."""
+    """Create model mixin."""
 
     @action()
     def create(self, data: dict, **kwargs) -> Tuple[ReturnDict, int]:
@@ -253,7 +253,12 @@ class UpdateModelMixin:
                     "errors": [],
                     "response_status": 200,
                     "request_id": 1500000,
-                    "data": {"email": "42@example.com", "id": 1, "username": "test edited"},
+                    "data": {
+                        "email": "42@example.com",
+                        "id": 1,
+                        "username":
+                        "test edited"
+                    },
                 }
                 */
         """
@@ -266,7 +271,7 @@ class UpdateModelMixin:
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer, **kwargs)
 
-        if getattr(instance, "_prefetched_objects_cache", None):
+        if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
@@ -343,7 +348,7 @@ class PatchModelMixin:
         serializer.is_valid(raise_exception=True)
         self.perform_patch(serializer, **kwargs)
 
-        if getattr(instance, "_prefetched_objects_cache", None):
+        if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
@@ -443,7 +448,7 @@ class PaginatedModelListMixin(ListModelMixin):
         Returns:
             Pagination class. Optional.
         """
-        if not hasattr(self, "_paginator"):
+        if not hasattr(self, '_paginator'):
             if self.pagination_class is None:
                 self._paginator = None
             else:
@@ -473,11 +478,11 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
 
         await self.reply(action=action, data=data, status=status, request_id=request_id)
 
-        count = data.get("count", 0)
-        limit = data.get("limit", 0)
-        offset = data.get("offset", 0)
+        count = data.get('count', 0)
+        limit = data.get('limit', 0)
+        offset = data.get('offset', 0)
 
         if offset < (count - limit):
-            kwargs["offset"] = limit + offset
+            kwargs['offset'] = limit + offset
 
             await self.list(action=action, request_id=request_id, **kwargs)
