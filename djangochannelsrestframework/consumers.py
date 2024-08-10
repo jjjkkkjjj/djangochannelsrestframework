@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Set, Type
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.db.models import Model
 from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
@@ -73,12 +74,27 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     # type: List[asyncio.Task]
     detached_tasks = []
 
+    async def __call__(self, scope, receive, send):
+        """
+        Dispatches incoming messages to type-based handlers asynchronously.
+        """
+        self.action = None
+        self.args = ()
+        self.kwargs = dict()
+        if 'url_route' in scope:
+            if 'args' in scope['url_route']:
+                self.args = scope['url_route']['args']
+            if 'kwargs' in scope['url_route']:
+                self.kwargs = scope['url_route']['kwargs']
+        await super().__call__(scope, receive, send)
+
+
     async def websocket_connect(self, message):
         """
         Called when a WebSocket connection is opened.
         """
         try:
-            for permission in await self.get_permissions(action='connect'):
+            for permission in await self.get_permissions():
                 if not await ensure_async(permission.can_connect)(
                     scope=self.scope, consumer=self, message=message
                 ):
@@ -88,6 +104,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             await self.close()
 
     def __init__(self, *args, **kwargs):
+        # Attributes: groups, scope, action, args, kwargs
         super().__init__(*args, **kwargs)
         self.groups = set(self.groups or [])
 
@@ -115,7 +132,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             await self.channel_layer.group_discard(name, self.channel_name)
             self.groups.remove(name)
 
-    async def get_permissions(self, action: str, **kwargs):
+    async def get_permissions(self, **kwargs):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
@@ -135,10 +152,22 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         Check if the action should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
-        for permission in await self.get_permissions(action=action, **kwargs):
+        for permission in await self.get_permissions(**kwargs):
 
             if not await ensure_async(permission.has_permission)(
                 scope=self.scope, consumer=self, action=action, **kwargs
+            ):
+                raise PermissionDenied()
+
+    async def check_object_permissions(self, action: str, obj: Model, **kwargs):
+        """
+        Check if the action should be permitted.
+        Raises an appropriate exception if the request is not permitted.
+        """
+        for permission in await self.get_permissions(**kwargs):
+
+            if not await ensure_async(permission.has_object_permission)(
+                scope=self.scope, consumer=self, action=action, obj=obj, **kwargs
             ):
                 raise PermissionDenied()
 

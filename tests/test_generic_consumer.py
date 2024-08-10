@@ -37,7 +37,7 @@ async def test_generic_consumer():
 
         @action()
         def test_sync_action(self, pk=None, **kwargs):
-            user = self.get_object(pk=pk)
+            user = self.get_object(action='test_sync_action', pk=pk)
 
             s = self.get_serializer(action_kwargs={'pk': pk}, instance=user)
             return s.data, 200

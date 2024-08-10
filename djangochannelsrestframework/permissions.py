@@ -99,7 +99,7 @@ class BasePermission(metaclass=BasePermissionMetaclass):
 
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
-    ) -> bool:
+    ):
         """
         Called on every websocket message sent
         before the corresponding action handler is called.
@@ -113,7 +113,7 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         action: str,
         obj: Model,
         **kwargs
-    ) -> bool:
+    ):
         """
         Called on every websocket message sent
         before the corresponding action handler is called.
@@ -131,6 +131,17 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         """
         return True
 
+    async def can_connect_by_object_permission(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, obj: Model, **kwargs
+    ) -> bool:
+        """
+        Called during connection to validate
+        if a given client can establish a websocket connection.
+
+        By default, this returns True and permits all connections to be made.
+        """
+        return True
+
 
 class AllowAny(BasePermission):
     """Allow any permission class"""
@@ -138,6 +149,16 @@ class AllowAny(BasePermission):
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
+        return True
+
+    async def has_object_permission(
+        self,
+        scope: Dict[str, Any],
+        consumer: AsyncConsumer,
+        action: str,
+        obj: Model,
+        **kwargs
+    ):
         return True
 
 
@@ -178,16 +199,11 @@ class WrappedDRFPermission(BasePermission):
         request.method = self.mapped_actions.get(action, action.upper())
         return await ensure_async(self.permission.has_permission)(request, consumer)
 
-    async def has_object_permission(
-        self,
-        scope: Dict[str, Any],
-        consumer: AsyncConsumer,
-        action: str,
-        obj: Model,
-        **kwargs
+    async def can_connect_by_object_permission(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, obj: Model, **kwargs
     ) -> bool:
         request = request_from_scope(scope)
-        request.method = self.mapped_actions.get(action, action.upper())
+        request.method = self.mapped_actions.get('connect', 'CONNECT')
         return await ensure_async(self.permission.has_object_permission)(
             request, consumer, obj
         )

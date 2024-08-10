@@ -5,15 +5,19 @@ import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
-from channels.testing import WebsocketCommunicator
 from rest_framework import serializers
 
 from djangochannelsrestframework.decorators import action
 from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
 from djangochannelsrestframework.observer import model_observer
 from tests.models import TestModelWithCustomPK
+from tests.websocket import ExtendedWebsocketCommunicator
 
 
+# テストは通ったがやり直し
+# 根本的にURLで処理するrest_frameworkとjsonの中身で処理するwebsocketでは考え方が違いそう．．．
+# →対応策としてrecieve_jsonで諸々PKを処理する必要がありそう
+# →具体的にはAyncAPIConsumerのactionに応じて（retrieve,update,delete）
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_subscription_create_notification(settings):
@@ -59,7 +63,7 @@ async def test_subscription_create_notification(settings):
             await self.model_change.subscribe(request_id=request_id)
 
     # connect
-    communicator = WebsocketCommunicator(TestConsumer(), '/testws/')
+    communicator = ExtendedWebsocketCommunicator(TestConsumer(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 

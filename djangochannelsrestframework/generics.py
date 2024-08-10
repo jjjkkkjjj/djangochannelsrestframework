@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional, Type
 
+from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
 from django.db.models import Model, QuerySet
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
@@ -72,7 +74,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
             queryset = queryset.all()
         return queryset
 
-    def get_object(self, **kwargs) -> Model:
+    def get_object(self, action: str, **kwargs) -> Model:
         """
         Returns the object the view is displaying.
 
@@ -90,6 +92,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
             >>> filtered_queryset = self.get_object(**{"field__gte": value})
             # this way you could filter from the frontend.
         """
+        kwargs.update(self.kwargs)
+
         queryset = self.filter_queryset(queryset=self.get_queryset(**kwargs), **kwargs)
 
         # Perform the lookup filtering.
@@ -105,7 +109,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         filter_kwargs = {self.lookup_field: kwargs[lookup_url_kwarg]}
 
         obj = get_object_or_404(queryset, **filter_kwargs)
-        # TODO check_object_permissions
+
+        async_to_sync(self.check_object_permissions)(action, obj)
 
         return obj
 
@@ -187,11 +192,19 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
 
         return queryset
 
-    async def check_permissions(self, action: str, **kwargs):
-        await super().check_permissions(action, **kwargs)
-        instance = self.get_object()
-        for permission in await self.get_permissions(action=action, **kwargs):
-            if hasattr(permission, 'has_object_permission') and not await ensure_async(
-                permission.has_object_permission
-            )(scope=self.scope, consumer=self, action=action, obj=instance):
-                raise PermissionDenied()
+    # async def websocket_connect(self, message):
+    #     """
+    #     Called when a WebSocket connection is opened.
+    #     """
+    #     instance = await database_sync_to_async(self.get_object)(
+    #         action='connect', **self.kwargs
+    #     )
+    #     try:
+    #         for permission in await self.get_permissions(action='connect'):
+    #             if not await ensure_async(permission.can_connect_by_object_permission)(
+    #                 scope=self.scope, consumer=self, message=message, obj=instance
+    #             ):
+    #                 raise PermissionDenied()
+    #         await super().websocket_connect(message)
+    #     except PermissionDenied:
+    #         await self.close()

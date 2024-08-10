@@ -4,7 +4,6 @@ import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
-from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model, user_logged_in
 from rest_framework import serializers
 
@@ -12,6 +11,7 @@ from djangochannelsrestframework.decorators import action
 from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
 from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
 from tests.models import TestModel
+from tests.websocket import ExtendedWebsocketCommunicator
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,7 +48,9 @@ async def test_observer_model_instance_mixin(settings):
 
         @action()
         async def update_username(self, pk=None, username=None, **kwargs):
-            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user = await database_sync_to_async(
+                self.get_object
+            )(action='update_username', pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
             return {'pk': pk}, 200
@@ -56,7 +58,7 @@ async def test_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumer(), '/testws/')
+    communicator = ExtendedWebsocketCommunicator(TestConsumer(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
@@ -199,7 +201,9 @@ async def test_two_observer_model_instance_mixins(settings):
 
         @action()
         async def update_username(self, pk=None, username=None, **kwargs):
-            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user = await database_sync_to_async(
+                self.get_object
+            )(action='update_username', pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
             return {'pk': pk}, 200
@@ -214,7 +218,9 @@ async def test_two_observer_model_instance_mixins(settings):
 
         @action()
         async def update_username(self, pk=None, name=None, **kwargs):
-            tm = await database_sync_to_async(self.get_object)(pk=pk)
+            tm = await database_sync_to_async(
+                self.get_object
+            )(action='update_username', pk=pk)
             tm.name = name
             await database_sync_to_async(tm.save)()
             return {'pk': pk}, 200
@@ -222,12 +228,12 @@ async def test_two_observer_model_instance_mixins(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator1 = WebsocketCommunicator(TestOtherConsumer(), '/testws/')
+    communicator1 = ExtendedWebsocketCommunicator(TestOtherConsumer(), '/testws/')
     connected, _ = await communicator1.connect()
     assert connected
 
     # Test a normal connection
-    communicator2 = WebsocketCommunicator(TestUserConsumer(), '/testws/')
+    communicator2 = ExtendedWebsocketCommunicator(TestUserConsumer(), '/testws/')
     connected, _ = await communicator2.connect()
     assert connected
 
@@ -301,7 +307,9 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
 
         @action()
         async def update_username(self, pk=None, username=None, **kwargs):
-            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user = await database_sync_to_async(
+                self.get_object
+            )(action='update_username', pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
             return {'pk': pk}, 200
@@ -309,7 +317,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerUnsubscribe(), '/testws/')
+    communicator = ExtendedWebsocketCommunicator(TestConsumerUnsubscribe(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
@@ -428,7 +436,9 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
 
         @action()
         async def update_username(self, pk=None, username=None, **kwargs):
-            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user = await database_sync_to_async(
+                self.get_object
+            )(action='update_username', pk=pk)
             user.username = username
             await database_sync_to_async(user.save)()
             return {'pk': pk}, 200
@@ -436,7 +446,7 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerMultipleSubs(), '/testws/')
+    communicator = ExtendedWebsocketCommunicator(TestConsumerMultipleSubs(), '/testws/')
     connected, _ = await communicator.connect()
     assert connected
 
